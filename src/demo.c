@@ -15,6 +15,7 @@
 #define FRAMES 3
 
 #ifdef OPENCV
+#include "opencv2/opencv_modules.hpp"
 #include "opencv2/highgui/highgui_c.h"
 #include "opencv2/imgproc/imgproc_c.h"
 image get_image_from_stream(CvCapture *cap);
