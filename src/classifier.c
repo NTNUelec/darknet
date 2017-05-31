@@ -14,7 +14,6 @@
 #ifdef OPENCV
 #include "opencv2/opencv_modules.hpp"
 #include "opencv2/highgui/highgui_c.h"
-image get_image_from_stream(CvCapture *cap);
 #endif
 
 float *get_regression_values(char **labels, int n)

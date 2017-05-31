@@ -15,9 +15,9 @@
 #define FRAMES 3
 
 #ifdef OPENCV
-#include "opencv2/opencv_modules.hpp"
-#include "opencv2/highgui/highgui_c.h"
-#include "opencv2/imgproc/imgproc_c.h"
+#include "opencv2/highgui.hpp"
+#include "opencv2/videoio.hpp"
+#include "opencv2/imgproc.hpp"
 
 static char **demo_names;
 static image **demo_alphabet;
@@ -31,7 +31,7 @@ static image in_s ;
 static image det  ;
 static image det_s;
 static image disp = {0};
-static CvCapture * cap;
+static cv::VideoCapture cap;
 static float fps = 0;
 static float demo_thresh = 0;
 
@@ -39,6 +39,36 @@ static float *predictions[FRAMES];
 static int demo_index = 0;
 static image images[FRAMES];
 static float *avg;
+
+image mat_to_image(cv::Mat src)
+{
+    unsigned char *data = (unsigned char *)src.data;
+    int h = src.rows;
+    int w = src.cols;
+    int c = src.channels();
+    int step = src.step;
+    image out = make_image(w, h, c);
+    int i, j, k, count = 0;;
+
+    for (k = 0; k < c; ++k) {
+        for (i = 0; i < h; ++i) {
+            for (j = 0; j < w; ++j) {
+                out.data[count++] = data[i*step + j*c + k] / 255.;
+            }
+        }
+    }
+    return out;
+}
+
+image get_image_from_stream(cv::VideoCapture& cap)
+{
+    cv::Mat mat;
+    cap.retrieve(mat);
+    image im = mat_to_image(mat);
+    rgbgr_image(im);
+    return im;
+}
+
 
 void *fetch_in_thread(void *ptr)
 {
@@ -114,12 +144,12 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
     if(filename){
         printf("video file: %s\n", filename);
-        cap = cvCaptureFromFile(filename);
+        cap.open(filename);
     }else{
-        cap = cvCaptureFromCAM(cam_index);
+        cap.open(cam_index);
     }
 
-    if(!cap) error("Couldn't connect to webcam.\n");
+    if(!cap.isOpened()) error("Couldn't connect to webcam.\n");
 
     layer l = net.layers[net.n-1];
     int j;
@@ -155,9 +185,9 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
 
     int count = 0;
     if(!prefix){
-        cvNamedWindow("Demo", CV_WINDOW_NORMAL); 
-        cvMoveWindow("Demo", 0, 0);
-        cvResizeWindow("Demo", 1352, 1013);
+        cv::namedWindow("Demo", CV_WINDOW_NORMAL); 
+        cv::moveWindow("Demo", 0, 0);
+        cv::resizeWindow("Demo", 1352, 1013);
     }
 
     double before = get_wall_time();
@@ -202,7 +232,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, int cam_index, const ch
                 disp = det;
             }
             show_image(disp, "Demo");
-            cvWaitKey(1);
+            cv::waitKey(1);
         }
         --delay;
         if(delay < 0){
